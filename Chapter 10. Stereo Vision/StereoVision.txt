@@ -1,0 +1,183 @@
+﻿-------------------------
+Chapter 10. Stereo Vision
+-------------------------
+ 
+================================================================================
+ Punto 1. Introduccion
+  |-> Intentar recuperar la OZ
+  |-> Coger dos imagenes de la misma escena para triangular los puntos
+          Identico a la vision humana con dos camaras
+  |-> Solamente podemos hacer stereo de la parte comun entre las dos camaras
+  
+  |-> Shape from shading, textures, focus, perspective, 
+          motion & optical flow, occlusion (maneras de calcular la profundidad)
+  |-> De una unica imagen no se puede sacar informacion 3D
+          Se necesitan dos vistas diferentes de la escena
+  |-> No podemos hacer stereo entre imagenes con homologia aplicada *** Examen ***
+          Trastoca el eje de rotacion. No crea disparides (ni rotacion ni zoom)
+          
+  Recostruccion de imagenes para stereo
+   |-> Sistemas de vision stereo: 2 camaras, sincronizadas, pose relativa conocida
+           Deben estar calibradas
+   |-> SFM: Camaras en localizaciones distintas, con area de solape entre ellas
+           crean la estructura a partir del movimiento de los objetos
+           *** imagenes no ordenadas en el tiempo ***
+   |-> SLAM Visual: Una unica camara haciendo localizacion y mapas simultaneos
+           *** imagenes ordenadas en el tiempo *** todo en tiempo real
+   *** Las dos ultimas trabajan con una misma camara ***
+   *** todas tienen como poco con dos vistas de la misma escena ***
+   
+  Problemas en Stereo vision
+   |-> Feature matching. Corresponder puntos
+   |-> Triangulacion geometrica. Calcular la distancia en la que se cortan
+   
+   Restricciones.
+    - Geometria epipolar. Limitar en una sola linea donde puede
+           aparecer el punto en la otra imagen
+                           
+
+
+================================================================================
+ Punto 2. Triangulacion
+  |-> Configuracion ideal. 
+          1. Ejes opticos paralelos a los ejes
+          2. Camaras identicas pero distintas en el OX (misma OZ e OY)
+          3. *** Si no existe la linea base no existe disparidad ***
+ 
+  |-> Como no cambian los ejes excepto en el OX, los keypoints de una camara se
+          mantendran en la misma recta paralela al dicho eje en la otra camara
+          *** Examen *** Esto permite obtener la Z mucho más facil
+  
+  *** Examen ***
+          Se pueden simplificar las medidas de los ejes OY y OZ pq no cambian
+          
+  Disparidad inversamente proporcional a la OZ y prop. b y f // z = (b·f) / d
+          Disparidad = 0 //Se projecta en el mismo sitio (OZ grande)
+          Disparidad > 0 //Cambia mucho su projeccion (OZ pequeña)
+          d = xleft - xright // d siempre es positiva [0,1,...]
+          
+  *** Examen *** Trabajando en medidas fisicas de la lente siempre en metros 
+  
+  Si aumentamos b (distancia camaras) hay más disparidad
+          Bueno para cosas lejanas (cometemos menos error)
+          
+  K es una matriz de 2d a 2d // x' = K x // K = [I|0] ó [R|t]
+  Usando la matriz K pasamos las mediciones en metros a pixeles 
+          *** Examen *** Unidades de dentro de la matriz (pixeles/metros)
+  
+  ¿Cuanto hay que separar las camaras? -> Ni mucho ni poco
+  
+  Analisis del error de la disparidad mediante derivadas.
+          Errores en el Stereo de cosas muy lejanas penaliza mucho la disparidad ²
+          Errores en cosas lejanas penaliza mucho mas que en cercanas
+          El triangulo de error (romboide) es mayor conforme este mas lejos
+          Las rectas estan mas paralelas si son puntos lejanos y cortan mas tarde
+  Solucion.
+          Separamos las camaras para evitar esta situacion de las rectas
+  
+  Rectificacion de la imagen.
+          Modificacion por software (homografia) de la configuracion de la imagen 
+          Cualquier punto de la imagen esta en la misma fila de la otra
+                  (en la misma linea epipolar)
+          
+  
+================================================================================
+ Punto 3. Correpondencia por atributos
+  |-> Restricciones en la correspondencia.
+          - Posibles puntos inventados al prolongar las rectas 
+                  (No hacer correspondencia si no estamos seguros)
+  
+  |-> Restricciones de la camara.
+          - Disparidad maxima o minima.
+                  Rango de disparidad: Limitar la busqueda del keypoint para no 
+                          confundirla con otro que se parezca en la misma linea
+                  El stereo solo se puede hacer en la zona comun
+                  Z min => Max disparidad && Max Z => Min disparidad
+                  Al no poder haber z mas pequeñas, no puede haber mas disparidad
+                  
+          - Continuidad de las superficies.
+                  Los cambios en la Z deben de ser suaves 
+                  Todas las sufercicies son continuas
+                  Damos preferencia a los pixeles que tengan una disparidad
+                          parecida a la de sus vecinos (mayor prob)
+          
+          - Unicidad.
+                  Ir de imagen izq a der y viceversa deben ser consistentes
+                  Un punto en la izq solo puede tener una correspondencia en la der
+          
+          - Ordenacion de las lineas epipolares.
+              A lo largo de la linea los keypoints deben estar en el mismo orden
+              No siempre se da en la realidad, pero en menos probable
+  
+  
+================================================================================
+ Punto 4. Geometria epipolar
+  |-> Restriccion epipolar. 
+          
+          Linea epipolar.          
+                  Dependiendo de la [R|t] surgen las restricciones
+                  La proyeccion de la recta en la que se encuentra el keypoint en l
+                          es la restriccion de busqueda en right (siempre esta ahi)
+                  Hay una linea epipolar para cada punto de la imagen izq y <=>
+                  Son l. epipolares conjugadas si se da esta correspondencia
+          
+          Plano epipolar.
+                Formado por el punto x1 y los centros opticos C de las camaras
+                Todos los planos epipolares mantienen el eje entre C1 y C2
+                        solo varia el angulo (Cada punto genera un plano)
+                No son precisos, tenemos que tratar con errores
+        
+        Epipolo (Punto)
+                Interseccion de los planos epipolares con lineas en un solo punto
+                Punto comun a todas ellas (zona comun entre los ejes)
+                Dos epipolos distintos para cada camara
+                No es normal que ese punto se corresponda a un pixel de la imagen
+                Si los planos son paralelos el epipolo esta en el infinito
+                La configuracion ideal es aquella que tiene 
+                        - los epipolos en el infinito
+                        - las lineas epipolares a la misma altura
+                
+                *** En homogeneas dos rectas paralelas se cortan en [_,_,0] ***
+                  
+  |-> Matriz esencial 3x3 con rango 2 (det = 0). Trabaja en metros
+          Los tres vectores deben ser coplanares
+                  Centros opticos
+                  Recta hasta x1 desde left
+                  Recta hasta x1 desde right
+          Si mueves la camara apuntando al punto, ambas img estan en el mismo plano
+          Deben estar representados en el mismo sistema de referencia (Camara1 o 2)
+          El paralilepipedo que surge de esto tiene como volumen 0 (es un plano)
+          No es relevante conocer la posicion de x pq va a estar en ese plano
+          
+          *** Examen *** Necesitamos conocer k (calibracion) para poder hacerlo
+                  En vez de estar trabajando en metros, seria en pixeles
+                  Y esa matriz se llama matriz fundamental
+          
+  |-> Matriz fundamental 3x3 con rango 2. Trabaja en pixeles, camara no calibrada
+          *** Examen *** Relaciona pixeles con pixeles (escalar)
+                  Es una unica expresion, no es un vector ni plano
+          
+          Relaciona los epipolos y los puntos con las lineas epipolares
+                  (transforma puntos en lineas, planos)
+          
+          Calculo de la F. 
+                  A partir de la [R|t] (no se puede calcular asi)
+                  Necesitamos 7 puntos, 5 puntos...
+                  Algortimo de los 8 puntos es el mas usado (valores singulares)
+                          Solucion lineal, necesita una tranformacion...
+          
+
+
+================================================================================
+ Punto 5. Reconstruccion por stereo
+  |-> Dense stereo. Keypoints + NCC/Correlation
+          La NCC no funciona bien pq aplicamos homografia (rotacion y trasn)
+          Depende del tamaño del pacth (se parecen pero no son la misma)
+                  - Ventana pequeña: Detalles pero con ruido
+                  - Ventana grande: Disparidades pequeñas, menos ruido
+          
+          Limitaciones de la Correlacion.
+                  Falta de textura, deteccion de profundidad...
+                  Se solucionan aplicando las restricciones
+          
+          Funcion de coste. Aplicamos el alg. de Dijkstra

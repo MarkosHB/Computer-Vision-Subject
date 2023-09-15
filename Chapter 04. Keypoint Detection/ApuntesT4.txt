@@ -1,0 +1,136 @@
+﻿----------------------
+T.2 Keypoint detection
+----------------------
+ |-> Puntos distintivos: Pixeles distintos a sus vecinos
+ 
+ - Problemas de deteccion:        // Harris
+         Algortimo (Operador) consistente. 
+         Invarianza a los cambios de color.
+         Invariante al punto de vista.
+ - Problema de descripcion:        // SIFT
+         Asignar a cada pixel distintivo un similar en otra imagen
+         Invarianza a los cambios de color.
+         Invariante al punto de vista.
+ 
+ |-> Propiedades deseadas:
+         Detector -> Preciso, eficaz y no propenso a errores. (Recall y precision)
+         Descriptor -> Inviarianza a iluminacion y punto de vista.
+ 
+ |-> Aplicaciones: Vision panoramica, recuperacion de imagenes/videos en DB, 3D
+ 
+ ================================================================================
+ Punto 2. Harris detector: 
+  |-> Detectar esquinas (que incluye keypoints)
+  |-> Simple y eficiente
+  |-> Robusto al ruido gaussiano aplica un suavizado
+  |-> Invariante a rotacion y brillo y parcialmente al contraste (usa derivadas)
+  |-> No es invariante a la escala
+   
+ Concepto esquina:
+  |-> Punto con variacion de intensidad en 2 direcciones
+  |-> Mira en todos los pixeles y va a analizar en una ventanita uno por uno
+        En regiones planas no cambia la intensidad de la ventana
+           En edges cambia para uno de los movimientos
+           En esquinas cambia para ambos
+  |-> Movimientos perpendiculares al borde (no en filas y columnas)
+  
+ Matriz M -> Matriz de pesos
+  Todo polinomio de grado 2 se pude expresar como: matriz Vector matriz
+  ** Los elementos de la matriz M son las derivadas primeras al cuadrado **
+  
+ Problema de la orientacion de las esquinas:
+  |-> No detecta bien los bordes y esquinas que estan en diagonal en la imagen
+        Sol: Diagonalizar la matriz M (dar una base al vector) Cambiar eje ref.
+         Consecuencia: Eliminamos los elementos que no estan al cuadrado en M
+                         (landa1, landa2) -> (M[0,0], M[1,1])
+ 
+ Harris clasifica con el valor R, no con landa1-landa2 de M
+  - El determinante de M es el mismo si la diagonalizas
+  - La traza de M (landa1+landa2) es el mismo siempre
+  - R se calcula a partir del determinante y la traza
+         Esto hace que sea invariante a la rotacion (usar M) y computable (usar R)
+ 
+ Algortimo Harris:
+  1. Derivada de la imagen
+  2. Suavizado con Gaussiana
+  3. Computamos la imagen R de la formula
+  4. Buscamos los pixeles donde R > threshold
+  5. Elegimos maximo local
+ 
+ ================================================================================
+ Punto 3. KLT operator:
+  |-> No calcula la R, calcula los autovalores para cada pixel
+         Mejor para detectar esquinas que Harris mediante tracking
+  
+ ================================================================================
+ Punto 4. Keypoint matching through correlation
+  |-> Correlacion es lo mismo que la convolucion pero sin rotar la imagen 
+           Realiza barridos a lo largo de la imagen
+  |-> Parecido entre dos imagenes pequeñitas (ventanas)
+          - Diferencia entre los pixeles al cuadrado (SSD)
+          - Valor absoluto (SAD)
+          Ambos no son invariantes al cambio de brillo o de contrate 
+ 
+ Correlacion cruzada (CC):
+  |-> Similar a la convolucion pero sin rotar el kernel
+          La señal de salida está volteada (en la convolucion)
+ Autocorrelacion:
+  |-> Una señal es más parecido a otra en el punto más alto (máximo)
+  |-> Hay que normalizar las señales **Examen**
+          para que dos señales blancas sean identicas a dos señales negras 
+ 
+ Correlacion cruzada normalizada (NCC):
+  |-> La corralacion cruzada no es invariante al brillo y contraste
+  |-> Normalizar: Quitar el brillo medio y dividir por el contraste
+  
+  La similitud entre dos vectores unitarios viene dada por el angulo entre ellos
+  Sabiendo el angulo entre los vectores podemos determinar como de similares son
+          Si aplpha = 0 -> Son el mismo keypoint
+ 
+  No se puede hacer correlacion cruzada si:
+          - La señal es homogenea (toda la ventana es del mismo valor o similar)
+          - Se ha rotado (el vector de colores es completamente distinto)
+          - Si la escala es distinta (se hace zoom)
+          Motivo: El modulo normalizado es cero         ** No sería un keypoint **
+ 
+  La salida de la correlacion es otra imagen en escala de grises:
+          La entrada se ha localizado en la salida si una ventana es 1 (blanco)
+          Cuanto más se parezca a ella más blanco es en la salida
+ 
+ ==============================================================================
+ Punto 5. SIFT operator
+  |-> Invarianza a la escala y a la rotacion (detecta y describe)
+  |-> No buscamos esquinas, buscamos distintivos (manchas)
+          Detecta esas esquinas y el propio objeto en conjunto
+  |-> Busca el extremos en un vector de escala. 
+          Histograma de las orientaciones de los gradientes
+  
+  
+  ** Examen ** Diapositiva 36 -> Diferencias entre los distintos operadores
+ 
+ Espacio de escala:
+  |-> Aplicar una gaussiana (suavizado) a la señal 
+  |-> La gaussiana de una gaussiana es otra gaussiana
+  |-> Siempre podemos reducir la resolucion (y el tamaño) pero nunca al reves
+          Vamos de más resolucion a menos conforme suavizamos
+  
+ Piramide de escalas:
+  |-> Organizado por octavas (Suavizados hasta que cambiamos tam de la imagen) 
+          Reducimos el tamaño porque la imagen esta ya tan suavizada 
+  |-> Hacemos DoG por octavas // Diferencia de imagenes suavizadas 
+ 
+ Deteccion de keyspoints:
+  |-> Buscamos los máximos de la imagen, 
+          que debe ser mayor que sus inferiores y menor que en sus superiores 
+  |-> Comparas con sus 26 vecinos (los suyos y los de la piramide)
+  
+ SIFT Descriptor:
+  |-> Construir un histograma de orientaciones del gradiente
+          Las barras del histograma indica cuantas veces aparece 
+           la orientacion ponderadas por la magnitud
+  |-> Los maximos del histograma -> Es la orientacion del keypoint predominante
+          Se puede asignar varios angulos al mismo keypoint (si hay varios max.)
+           A la hora de emparejarlos, habria que hacerlo varias veces
+  |-> Tamaño del descriptor -> [0-128]
+ 
+  Cuadrados mas grandes indica que se ha encontrado con menor resolucion

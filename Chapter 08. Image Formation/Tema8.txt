@@ -1,0 +1,149 @@
+﻿---------------------------
+Chapter 08. Image Formation
+---------------------------
+ |-> Extraer informacion metrica de la imagen (tamaño, localizacion..)
+ |-> Nos fijamos en los rayos que dan lugar a las proyecciones en la camara
+         No es importante los colores, intensidades... sino las coordenadas
+  |-> Los puntos en el plano del sensor de la camara son los mismos que los 
+          de la matriz de la imagen, cambian su sistema de referencia
+
+
+ ==============================================================================
+ Punto 1. Introduccion.
+  |-> Problema geometrico. Que coordenada de pixel van a tener los objetos
+  |-> Probelma radiometrico. Que color tendra la imagen 3D
+ 
+ *** Partimos de la imagen 2D e intentamos componer el mundo 3D ***
+ 
+  Pinhole model of a camera.
+   |-> Centro optico de la camara recoge la proyeccion invertida (no es fisico)
+   |-> Camara, lente y sensor. Sis. de referencia en el sensor y centro optico
+   |-> Calculo de Z => objetivo del tema (plano virtual) //Unidades en metros
+          Las mediciones las realizamos en el image frame
+          
+  Modelo de la camara.
+  |-> Transformar el sistema de referencia (del mundo) 
+          con respecto al de la camara (cambia las coordenadas)
+  |-> Tampoco podemos utilizar el sistema de referencia del centro optico
+  
+ ==============================================================================
+ Punto 2. Transformaciones eculideas en 3D.
+ 
+  Transformaciones 3D -> 3D.
+   |-> Vectores libres = Punto //Vamos desde el cero hasta la cabeza del vector
+            3 coordenadas ó (2 angulos + 1 escalar)
+   |-> Vectores ligados = Par de puntos
+  
+  Repaso algebra ;)
+   |-> Producto escalar de dos vectores //Numero
+         Norma del vector a => ||a||
+           Proyeccion del vector sobre otro
+           La norma de un vector es la raiz cuadrada del transpuesto por el mismo
+ 
+   |-> Producto vectorial (vector). Determinante de una matriz //Area
+           *** Uso de la matriz antisimetrica (diagonal a cero) ***
+           Computacionalmente es mejor en 100% de los casos
+ 
+   |-> Producto de tres vectores (escalar x (vector x vector)) //Volumen
+           Cuando tres vectores estan en el mismo plano entonces = 0
+  
+   |-> Matriz es una coleccion de vectores //Matriz
+           La matriz es la forma que tenemos para modificar un vector
+           La matriz se puede ver como filas de columnas o columnas de filas
+           Matriz 3x3 en R² y uno de ellos es combinacion lineal de los otros dos
+  
+   |-> Transformaciones lineales.
+           - Producto de cada fila por el vector (proyectar cada vector en otro)
+                     (aplicando el producto escalar)
+           - Combinacion lineal de columnas por el vector (suma y multiplicacion)
+                    (aplicando transformaciones lineales)
+          
+        ***Examen***
+        Algo se puede decir que es lineal si se cumple ambas:
+          Cumple el principio de aditividad... (fuerzas y efecto)
+                  La transformacion de la suma es la suma de las transformadas
+                  *** Tiene que pasar por el origen *** //y = ax
+          ... y el principio de escala (subir el volumen de la tele)
+                  f(a·x) = a·f(x)
+          
+   |-> Transformaciones afines.
+           |-> y = Ax + b no es lineal porque la aditividad no se cumple 
+                   Sumar dos vectores no es lineal
+          
+   |-> Matriz rotacion. *** Examen ***
+          - Transformacion lineal de vectores sin cambiar el modulo.
+          - Deformacion del espacio donde se mantiene la equidistancia. y=Ax 
+                  Rota el vector pero mantiene su longitud
+                    1. La transpuesta es igual a la inversa //Ortonormal
+                    2. El det = 1 (no cambia nada) //Ortogonal
+           
+          - Podemos rotar el punto (Robotica) o el sistema de referencia (CV)
+          - R³ == Matriz 3x3; R² == Matriz 2x2;
+          
+          - Los giros se realizan con respecto a un solo eje. Se concatenan
+                  La matriz de rotacion 3D se decompone en 3 mas simples 
+                  correspondiente a cada uno de los ejes de referencia
+          
+          - Las rotaciones no se realizan sobre espacios euclideos
+                     
+   |-> Transformaciones homogeneas.
+           - Coordenadas homogeneas.
+                   Usadas en transformaciones lineales
+                   Facilitan la multiplicacion de vectores con matrices
+        - Factor de escala:
+                Añadimos una dimension mas (lamda) para guardar las
+                        transformaciones realizadas al vector        
+                   
+ ==============================================================================
+ Punto 3. Homografia en 2D.
+  |-> Unificar linealmente las coordenadas en el mundo real con la imagen
+  |-> No dobla las lineas, rotar y trasladar el plano
+  |-> Permiten expresar rayos y no ir arrastrando el term ind en tran euclideas
+  *** Examen *** 
+          Matriz de homologias
+  Tipos.
+   Affine = 
+   Projective = 
+   
+   H = [ R t ]
+       [ 0 1 ]
+ 
+ ==============================================================================
+ Punto 4. Pinhole Model
+  Modelo para representar el mundo 3D #metros en el plano de la imagen #pixeles
+  |-> Todas las rectas salen del centro optico
+          Recta que pasa por dos puntos: (0,0,0) y Punto@(x,y)
+          k · [x-0, y-0, f-0] es el vector indexado que representa a la recta
+                  Siendo f la distancia focal (como de lejos esta del centro)
+ 
+  |-> Cambiar la k por una z (la k no sabes donde esta en el SR)
+          Dividimos por f para hacer 1 la tercera coordenada (asi es z)
+          z = k·f (el pixel que tengo a distancia uno en la z)
+ 
+  |-> Si proporcionamos la z, tenemos el punto en el espacio (mas comodo que k)
+  
+  *** Examen ***
+          Pasar de coordenadas homogeneas al mundo 3D [a/c, b/c]
+          
+  |-> No podemos utilizar el modelo sin saber la z de M ni m' en la camara
+          hace falta hacer una homografia entre tal que: m = H m'
+              [sx 0 tx]        // No hay rotacion
+          H = |0 sy ty|        // Hay translación
+             [0 0 1 ]    // Cambio de escala (cambio entre metros y pixeles)
+ 
+  |-> Calibración: Calculo de los paramatros de la matriz H.
+ 
+ 
+ ==============================================================================
+ Punto 5. Camera Model.
+  |-> Pinhole + Modelo ref mundo + Matriz H
+  |-> Concatenacion de matrices => una unica matriz con la que operar
+  
+  *** Transformacion afin no mantiene los angulos ***
+  *** am' = K · [R t] Mw ***
+  
+  Distorsiones radiales -> Las rectas de los extremos de la imagen no son tal
+          Aparecen deformadas por la lente curvada
+          
+          
+  Matriz K_3x3 de calibracion de la camara

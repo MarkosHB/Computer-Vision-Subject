@@ -1,0 +1,283 @@
+﻿===============================================
+====== Tema 1. Procesamiento de Imágenes ======
+===============================================
+
+
+Punto 1. Idea general de la asignatura y del tema:
+ |-> Se poporciona una imagen de entrada.
+ |-> La imagen de salida debe ser más facil de tratar
+          (extracción de puntos criticos, identificación de objetos).
+
+
+Dos maneras de entender las imágenes:          ¡Ambas hablan de lo mismo!
+ 1. Matriz. Cada entrada (x,y) se corresponde con un valor de intensidad.
+ 2. Función. Cada f(x,y) corresponde con un valor (x,y) discreto.
+                
+Trabajo en el dominio de frecuencias:
+ [Enfoque informático]
+  |-> Dominio del espacio (filas y columnas):        
+      Trasformacion de f(x,y) mediante la funcion h(f(x,y)) 
+       Posibles maneras de definir h:
+        - Image Average (promedio con los vecinos)
+        - Convolucion (promediado de la imagen en el tiempo)
+ [Enfoque físico]
+  |-> Dominio de frecuencias (funciones):        
+      (No se imparte en VC, se utiliza la tranformada de Fourier)
+      (Menos importancia en nuestro sector por el uso de GPUs especializadas)
+ 
+ 
+===============================================================================
+Punto 2.1. Importancia de la luz en las procesamiento de imágenes:
+
+
+Los receptores del ojo humano son distintos a su equivalente en las cámaras.
+ |-> Más sensibles a la franja central de colores del espectro electromagnetico.
+ |-> No detecta los tonos morados o rojos con la misma intensidad.
+
+
+Hay dos tipos de receptores en el ojo humano:
+ - Bastones. Ven en niveles de grises (Visión de noche // Con poca luz)
+ - Conos. Responsables de ver los colores (Un tipo de cono por color)
+ - Fovea. Zona de mayor concentración de conos de color.
+           Fuera de la Fovea se encuentran los bastones.
+
+
+----------
+Conclusión
+----------
+La manera de representar la luz y colores de una imagen es determinante en VC.
+Vamos a emplear receptores en la cámara que imiten el comportamiento de los conos.
+
+
+
+
+RGB: 
+ - Es el espacio de colores más simple debido a que es lineal. 
+ - Intuitivo para el mundo digital de la programacion (rojo - verde - azul).
+ - Cada color puede ser definido segun su intensidad en estos colores. 
+ - Si R = G = B -> escala de grises correspondiente a la diagonal del triedro.
+ - 2^24 combinaciones de colores posibles (256^3).
+
+
+Esto permite la combinacion de los componentes (colores) de manera lineal.
+Una imagen a color está definida por tres matrices de color RGB.
+La combinación de estas casillas indica el grado de color de la imagen original.
+
+
+¿Cómo pasar de imagen de color a nivel de grises?
+ [Metodo de promediado]
+  |-> Suma las componentes de cada pixel y divide entre 3 (media de colores)
+        - Resulta en un valor entre 0 y 255. 
+        - Puede que imagenes de color distintas entre sí den el mismo valor.
+
+
+ [Agrupación de pixeles de la imagen]
+  |-> Valores normalizados (entre 0 y 1) -> r + g + b = 1
+  |-> Importa el ratio (proporcion de color). 
+          Proporciona más información. Ej: Fruta madura
+
+
+
+
+===============================================================================
+Punto 2.2. Histograma de una imagen, h(i): 
+ |-> Muestra la frecuencia (proporción) de pixeles de cada color hay en una imagen.
+ |-> Si la imagen es en color hay tres histogramas de su intensidad por color.
+ |-> Eje OX: Escala de Grises / Color (0-255); Eje OY: Cantidad de pixeles.
+ Información que proporcionan:
+  - Brillo (medio) -> El alto del histograma indica el brillo de la imagen. 
+                          Si es alto, gran brillo. 
+                          Modificar el brillo desplaza verticalmente el histograma
+  - Contraste -> El ancho del histograma indica el contraste de la imagen.
+                          Si es amplio, gran contraste.
+                          Modificar el contraste desplaza lateralmente el histograma
+
+
+------------
+¡Importante!
+------------
+- Momento de una funcion, m(x): valor de x en el histograma // 0 <= h(i) <= 255
+- Momento central: Se estudia la variable relativa a su brillo // 0 <= h(i) <= 1
+- Brillo Medio, m1: Intensidad promedio del histograma.
+- Contraste, desviacion tipica: Mayor contraste posible -> Blanco-negro (50%-50%)
+
+
+------------------
+Pregunta de Examen
+------------------
+
+
+| 1 | 2 | 3 |
+| 4 | 5 | 6 |
+| 7 | 8 | 9 |
+
+
+Brillo medio (m1) = (1+2+...+9) / 9 = 45/9
+Contraste (m2^1/2) = SQR( ( (1-5)² + (2-5)² +...+ (9-5)² ) /9 ) = (20/3)^1/2
+
+
+Saturación del Blanco / Negro:
+ - El sensor no es capaz de captar los tonos más blancos/negros. (truncamiento) 
+ - Imagen mal digitalizada. (ajustar la lente para no perder la informacion)
+ - La saturación solo es ocasionada en los extremos del histograma.
+
+
+Aumentar el contraste para aprovechar mejor el rango de colores de la imagen.
+Como consecuencia se desplazan el valor de los pixeles en bloque (no se gana informacion).
+
+
+Modificando el brillo y contraste permitimos que la imagen ocupe todo el rango de colores.
+
+
+ // Aumentar el contraste en una zona que no es la media ocurre en saturacion. //
+
+
+
+
+===============================================================================
+Punto 2.3. Look-up Tables (Tabla de consulta):
+ |-> Vector [0-255] con un color nuevo que sustituye al indice.
+         Idx 20, valor 100 -> Todos los pixeles de intensidad 20 cambian a 100 
+         Una tabla para cada color RGB
+ [Ejemplos en graficas]
+  |-> Mayor pendiente que 45 = estirar el histograma = aumentar el contraste
+  |-> Menor pendiente que 45 = disminuir el contraste
+
+
+
+
+===============================================================================
+Punto 2.4. Distancia entre pixeles:
+ |-> Distancia euclidea / Distincia clasica entre dos puntos
+ |-> Distancia de Manhattan / Suma de los valores absolutos
+ |-> 8-Distancia / Maximo entre las coordenadas de los pixeles 
+ 
+
+
+===============================================================================
+Punto 2.5. Convolucion de Imagenes -> Desplazar la imagen
+ |-> Operacion definida para cada pixel, cambia su valor en funcion de una suma ponderada y multiplicarlo por un valor de un kernel
+ |-> Tratarla como dos matrices de numeros (imagen y mascara)
+ |-> Permite derivar el histograma.
+  
+[Correlacion]
+ |-> Formula parecida a la de convolucion
+ 
+Diferencias:
+ - Conv: Voltear imagen horizontal y verticalmente (por los signos en la formula)
+ - Corr: No se voltea, tal cual se coloca (en la formula son sumas)
+ 
+La imagen puede salir mas grande si procesas en los bordes
+
+
+Volteo: columna de la izq pasa a la derecha; Todo lo que hay arriba pasa abajo
+
+
+
+
+Propiedades:
+ - Conmutativa.
+ - Asociativa con respecto a ella misma.
+ - Distribuita con respecto a la suma.
+ - Asociativa con respecto a un escalar.
+         Puede ocasionar saturaciones a blanco o negro
+         No valen negativos
+ - Derivativa de una funcion discreta.
+ - Teorema de la convolucion
+
+
+
+
+===============================================================================
+Punto 3. Suavizado (Smoothing)
+ |-> Elimina el ruido en la intensidad de los pixeles.
+ |-> El ruido aparece por la respuesta amplificada del sensor.
+         Origen en la naturaleza digital de los transistores CMOS.
+ 
+ [Tipos de ruido]
+  - Puntos blancos y negros random: Salt and pepper noise
+          - Impulso: Puntos blancos o negros discretos random
+  - Gaussian: Perturvaciones del valor real 
+          Radiaciones provenientes del universo (pequeño) o imprecisiones
+ 
+  Esto puede ocurrir en cualquier tipo de imagenes (color o b&n)
+  
+ 
+ [Quitar ruido Gaussiano]
+  1. Haciendo la media (Promedio de los 8-vecinos)
+          Pones borrosos los pixeles; Difuminas los bordes
+          Cuantos mas vecinos mayor tasa de eliminacion ruido
+          Pero enturbias la imagen mas (si das el mismo peso a cada pixel)
+          - Problemas generados por la escala de la medicion utilizada
+
+
+  2. Filtro de la media (Filtro Gaussiano)
+   |-> Media ponderada (a diferencia de los 8-vecinos)
+   |-> Los pesos salen de la campana de gauss (en 3dimensiones)
+       - Los 2 parametros que definen a una campana de Gauss g(x)
+          |-> Sigma: Anchura de la campana (m2). Min = 0; Max = inf 
+                |-> Mu: Centro de la campana (valor de x)
+                |-> cte: Asegurarse de que el area total es 1 
+
+
+         Sigma²(x) - Sigma(x) Sigma(y) // Pos OX - Rotacion 
+         Sigma(x) Sigma(y) - Sigma²(y) // Rotacion - Pos OY
+        
+   |-> Matriz centrada en el cero y con simetria radial (isometria)
+   |-> Separabilidad: Separar las matrices de pixeles mediante convolucion
+         - Suavizado por filas y suavizado por columnas
+ 
+ [Parametros del filtro]        
+  |-> Sigma nos permite controlar el grado de suavizado
+          - Mayor sigma -> Mas suavizado && imagne borrosa // Colores mas b&n
+  |-> Kernel es el grado de suavizacion que se aplica a las imagenes con ruido
+          Cuanto mas grande, se va a cargar los bordes
+          Tamaño del kernel: cuando paras de truncar de arriba a abajo la campana
+          El kernel se adapta a la campana
+  
+  Imagenes con mucho ruido requieren un kernel (sigma) mas grande
+  Si no tiene tanto ruido, basta con uno mas pequeño y te ahorras operaciones
+ 
+  [Filtro de la mediana]
+   |-> Se usa en ruido no gaussiano (Ruido de sal y pimienta)
+   |-> Sustituir el valor del pixel por el centro de una escala ordenada 
+           de su alrededor (la ventana va por bloques proximos)
+   |-> Es no lineal (no se utilizan sumas y mult) y costoso 
+ 
+  [Promediado de imagenes]
+   |-> Eliminar el ruido mediante la secuencia de imagenes
+   |-> Hacer la misma foto muchas veces y promediar los pixeles 
+           Sumamos el error promediandolo y tiende a cero porque
+           La campana de gauss esta centrada en cero  
+   |-> No enturvia los bordes
+   
+-------
+Resumen
+-------   
+   Ruido gaussiano -> 1. 8-vecinos/Filtro Gaussiano (una misma imagen una vez)
+                          2. Promediado de imagenes (misma imagen muchas veces)
+   Ruido no gaussiano -> Filtro de la Mediana 
+
+
+          
+===============================================================================
+Punto 4. Image Enhancement (Realce de imagenes)
+ |-> Objetivo: Mejorar el contraste y el brillo de medio.
+ |-> Trasnformaciones no multievaluadas de la LUT:
+       - No lineal (exp):
+          Dilata o comprime una parte del histograma.
+          Si interesa la parte negra de la imagen < 1
+          Si interesa la parte blanca de la imagen > 1 
+           ** La LUT es independiente del histograma **
+ 
+ |-> Ecualizacion del histograma:
+         Misma frecuencia para todos los colores (aplanarlo).
+         Si la imagen tuviera infinitos tonos se podria conseguir.
+          ** Se pueden sumar frecuencias pero no romperlas **
+          ** La LUT depende del histograma **
+ 
+ 
+ |-> Especificacion de histograma:
+         Definir un histograma que nos interese.
+         Binarizacion de imagenes -> Definir un umbral.
+          ** No se llegan a sumar las frecuencias, parecido **

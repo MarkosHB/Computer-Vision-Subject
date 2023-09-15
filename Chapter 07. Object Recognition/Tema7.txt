@@ -1,0 +1,74 @@
+﻿--------------------------
+Tema 7. Object Recognition
+--------------------------
+ |-> Con el vector de caracteristicas dividiremos 
+         el espacio para cada una de esas categorias.
+ |-> Fronteras duras vs Fronteras Blandas.
+ |-> Fase de diseÃ±o. Formas de dividir el espacio
+         ** Elegir las caracteristicas mas discriminantes **
+ |-> Fase de funcionamiento online. Se basa en el anterior para clasificar
+ 
+ Enfoque estadistico.
+  |-> Las particiones vienen dadas por la estadistica subyacente al problema.
+          Tiene una probabilidad de ser un objeto. (como el E.M)
+  |-> Parametros estadisticos (de la distribucion de Gauss)
+ Enfoque no estadistico.
+  |-> Frontera dura (como K-Means)
+ 
+ ===============================================================================
+ Punto 2. Funciones Discriminantes
+  |-> Combinacion lineal de todas las caracteristicas + termIndependiente
+  |-> Vector de pesos obtenido en la fase de entrenamiento && v.caracteristicas
+          Forma aumentada -> Introducir el termIndep en los pesos con x = 1
+  |-> Creamos i funciones para cada clase i. Como entenamiento calculamos los w
+  
+  En dos dimensiones -> = , < Ã² >
+  En mas dimensiones -> Como una red neuronal. Se escoge el mayor
+  
+  Las funciones borde surgen de la resta entre las f.d. de las dos clases
+  
+ ===============================================================================
+ Punto 3. Clasificador Bayesiano
+  |-> Coincidir la dk(x) con una p(ck/x) //Probabilidad a posteriori
+          Le asignamos la que mayor probabilidad a posteriori tenga (MAP)
+          Esto es porque en esa prob. es la que menor error comete
+          Prior es antes de realizar la observacion (no interviene x)
+  
+  |-> Las probabilidades de las x son funciones continuas
+          Si p(x) es continua entonces es cero (lo gaussiano siempre es cont.)
+          Si P(Cx) es discreta entonces es la que es
+          
+       Probabilidad conjunta (interseccion)
+          - p(x,y) = p(x|y) * p(x) //Siempre
+          - Si ademas x e y son independientes entonces p(x)p(y)
+  
+  |-> Trabajamos en intervalos de asignacion si 
+          no esta clara que perteneza a una clase
+          
+  |-> Si no queremos recoger falsos positivos, si no se supera una P(C/x) 
+                  decidimos no asigar a ninguna de las clases
+                  
+  Binomial distribution.
+   |-> Aplicando logaritmos para hacer mas simple la expresion
+           ** La i es la clase y la f es la caracteristica **
+   
+   Proceso a desarrollar **Examen**
+        1. Vector de caracteristicas booleano
+           2. Probabilidad de que la clase Ci tenga la caracteristica xf
+          3. Debemos asumir independencia de las variables de x
+                  Clasificador de Naive Bayes 
+          4. Resulta en una expresion lineal en x
+                  term. ind + Sum(x*valor)
+  
+  Gaussian Distribution.
+   |-> Las caracteristicas (x) si son continuas
+           La matriz es diagonal porque son variables independientes
+           Campanas alineadas con los ejes
+           Todas las constantes se pueden eliminar (no afecta a los maximos)
+   
+   |-> term. ind + pesos lineales + pesos cuadraticos 
+           
+   |-> Clasificador de minima distancia de Mahalanobis //Simplifica la expresion
+           Aparece si todas las clases tienen la misma prob y matriz de cov.
+ 
+  ** En ambos metodos tomamos que las variables de x son independientes **

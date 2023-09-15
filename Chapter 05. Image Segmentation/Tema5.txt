@@ -1,0 +1,134 @@
+﻿----------------------
+T.4 Region Description
+----------------------
+ |-> No se basa en nada de los keypoints (si en los bordes)
+ 
+ Segmentacion:
+  |-> **Agrupar** los pixeles que se parecen segun propiedades
+          Segun la intensidad de gris del pixel o el color en la escala RGB
+  |-> Enfoques:
+         Arriba-Abajo -> Clasificacion segun el significado proporcionado (CNN)
+         Abajo-Arriba -> Pixeles similares deberian ser de la misma region (CV)
+ 
+ ==============================================================================
+ Punto 2. Tecnicas basadas en el contorno
+  |-> Contorno: Transciones de intensidades entre bordes (parecido de color)
+  
+ Tecnicas Locales
+  |-> El pixel en el que estoy y sus vecinos
+ Tecnica global
+  |-> Se fija en todos los pixeles de la imagen
+ 
+ Transformada de Hough:
+  |-> Aplicada para buscar contornos de los que tengo su expresion analitica
+           (lineas, circulos, elipsis..)
+  |-> Esquema de votacion: 
+          Los pixeles de los bordes votan por pertenecer a un contorno
+          ** Examen ** No todos votan, solo los de gradiente alto (borde)
+  
+ Deteccion de lineas con Hough:
+  |-> Espacio de parametros: 
+   Las infinitas lineas que pasan por las coordenadas del pixel estan alineadas
+   Dos puntos estan alineados si dos rectas del E.P se cortan en un punto
+   Cuantas mas rectas se corten en ese puntos mas votos tiene de ser una linea
+   Acumulador: Discretiza y acumula los votos 
+   
+   y = ax + b -> Variables = x,y; Parametros = a,b
+   b = -ax + y -> Variables = a,b; Parametros = x,y   
+   La parte independiente influye mucho en la pendiente (Entre 0-45º)
+   
+   Representacion en base normal:
+    |-> Rectas alineadas en el E.P se transforman en senoides 
+    |-> Equivale a la forma polar (con parametros ro y teta)
+    
+    ro = x cos(teta) + y sen(teta) 
+    
+ Deteccion de circulos con Hough:
+  |-> Cada punto (x,y), cuales son todas las circunferencias que pasan por el
+ 
+ Si no tenemos la expresion analitica del objeto a reconocer, creamos la tabla
+         1. Cogemos el centroide (media de los pixeles del borde)
+         2. Tangente de cada pixel del borde mediante el gradiente
+                 Cogemos el angulo con la tangente y la distancia al centroide
+         3. La tabla guarda en polares la distancia al centroide
+         4. Votamos de la misma forma que en la ex. analitica usando la tabla,
+                 desde todas las posibles orientaciones 
+ 
+ Con la tabla podemos encontrar cualquier objeto con su forma (con rotacion)
+ 
+ ==============================================================================
+ Punto 3. Thresholding
+  |-> Segun el **color**, la posicion del pixel, propiedad local... 
+  |-> Solo aplicamos la unmbralizacion (aunque en la practica no funcione)
+          de manera controlada como aplicaciones industriales
+  
+  |-> Tipos de iluminacion:        
+          1. Estructura de luces. Obtener iformacion en 3D para la reconstruccion
+          2. Retropropagacion. El objeto entre la camara y la luz. Solo silueta
+          3. Luz direccional. Inspeccion de superficies (del contorno)
+          4. Iluminacion difusa. Luz indirecta
+ 
+ ==============================================================================
+ Punto 4. Tecnicas basadas en la Region
+  |-> Cogemos todas los pixeles de la imagen (no solo el contorno)
+  |-> Tecnicas de clustering: Agrupacion segun propiedades de los vectores
+          Podemos utilizar modelos que se ajusten a la imagen
+  
+  Crecimiento de Regiones:
+           1. En la imagen cogemos x semillas segun nuestro problema.
+           2. Avanza desde la semilla hacia los vecinos.
+           3. Si cumple las condiciones se añade al objeto. 
+           
+           Decisiones clave:
+           - Podemos mezclar regiones conexas
+           - Colocacion de semillas. Aleatorio o heuristico
+           - Media dinamica. Promedio de la semilla y sus vecinos (pseudosemilla)
+  
+  K-Means para segmentacion:
+   |-> Vector de caracteristicas para cada pixel (color, posicion...)
+           |-> Cuidado al colocar en el mismo vector cualidades de distintas
+                   magnitudes. Tenemos que pesar cada componente. Factor de escala
+  
+   |-> Cada region se representa por la media del vector de caracteristicas
+           |-> Por eso si una componente (debido a su magnitud) es mucho mayor a
+                   otra debe de ser promediada con el resto
+  
+   |-> Definimos la distancia entre vectores 
+           |-> Las K-Medias siempre crean clusters circulares **Problema**
+                   Es un tipo de gaussiana particular
+  
+  Expectation-Maximization(EM):
+   |-> Generalizacion 'soft' de K-Means. No dictamina que un pixel pertenezca 
+           a un objeto. Pertenece a este objeto con esta probabilidad.
+   |-> Introducimos probabilidades gaussianas para la distribucion de prob.
+           |-> Con esto podemos crear clusters que no sean circulares **Examen**
+   
+    Regla de Bayes: 
+           Prob. a posteriori (una funcion) a partir de otras a priori (un numero)
+           Prob. de algo (que un pixel pertenexca a un cluster) cuando tenemos
+                   una evidencia (hemos mirado el vector de caracteristicas) 
+                   
+           **Actualizador de probabilidades en la identificacion de objetos**
+ 
+    PDF -> Probabilidad Funcion de densidad
+    Gaussiana de n-dimensiones (una para cada componente del v.caracteristicas)
+            (x-mu)T (x-mu) = (x1-mu1)² + ... + (xn-mun)²
+             x-mu = Cuadrado de la distancia entre el vector y mu
+                    **Formula transparencia 37**
+            
+            La escala la proporciona la matriz de covarianzas (suponemos diagonal)
+            Combinacion de campanas de Gauss cortadas en distintos planos
+            Zonas del mismo color en EM -> misma distancia ponderada(no euclidea)
+                    Distancia de Mahalanobis
+            
+            Si la gaussiana es ancha en OX (sigma grande), cluster ancho en OX
+            Si ademas es corta en OY, cluster corto. Combinacion (____)
+            
+            Matriz de covarianzas -> Siempre es matriz simetrica(no en la diagonal)
+                La campana de gauss esta alineada con los ejes si es cero
+                Las componentes simetricos -> responsables de la rotacion
+        
+        Expextation -> Aplicar Bayes con n-Gaussianas
+        Maximizacion -> Recalcular las n-gaussianas y las apriori para cluster
+            
+            Con EM la clave es la recaclulacion de sigma de las n-Gaussianas

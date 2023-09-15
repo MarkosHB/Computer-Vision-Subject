@@ -1,0 +1,99 @@
+﻿--------------------------
+Tema 6. Region Description
+--------------------------
+ |-> Describir en un vector las regiones segmentadas (para cada objeto)
+         En este tema nos olvidamos de los pixeles, solo las regiones
+ |-> Conseguir un descriptor que nos permita localizarlo en la imagen
+         Invarianza a la posicion, la orientacion y/o escala
+ 
+ ===========================================================================
+ Punto 2. Descriptor de formas
+  
+  Descriptores simples
+   - Compactness = Area / pixeles² (invariante a escala,orientacion,posicion)
+   - Extent = Area / CajaContenedora (no tiene invarianza a la orientacion)
+   - Elongation (Rotated min bounding box)
+   - Eccentricity (Cuan de alargado es un objeto) -> Circulo = 1
+   - Lateral projections (dos histogramas de una dimension)
+   
+  Descriptor de Fourier
+   |-> Resumir el contorno del objeto y describirlas como frecuencias (modulos)
+   |-> Frecuencia positiva y negativa son lo mismo F(-8), ..., F(0), ..., F(8)
+           La trans de fourier esta centrada en el cero (positivos y negativos)
+   |-> Aproximacion del contorno, no nos interesan los pequeños detalles
+           Pueden estar originados por el ruido.
+           A mayor numero de frecuencias cogidas, mejor descriptor es pero 
+                   mayor overfitting introducimos
+   |-> Le metemos ceros al descriptor (no a la trans de fourier) 
+           La frecuencia F(0) centra el descriptor en el centro de la region
+   |-> Frecuencia (amplitud) a escoger: Armonicos de la funcion senoide 
+           
+   |-> Donde hay discontinuidad hay cambios de frecuencia
+   
+   ** Invarianza a la escala, rotacion, translacion y escala ** 
+   
+ ===========================================================================
+ Punto 3. Descriptores de regiones
+  
+ Momentos
+  |-> Tiene en cuenta los colores ademas del contorno
+  |-> Los momentos son una manera de transformar señales a un espacio nuevo
+          Siempre estamos dentro de un mismo objeto (no nos salimos)
+          F(x, y) = 0 si estamos fuera de la region segmentada
+  |-> Centrales si le quitamos la media
+  |-> Los momentos no son invariantes a nada
+  
+  |-> En un histograma la suma de las barras da el numero de pixeles
+          mu00 = N 
+  
+  ** Cuadrado rojo transparencia 11 ** -> Entender de la mitad para arriba
+          Cual vale cero, 20, 11...
+ 
+  |-> Ventaja del descriptor central 
+          Invariante a: Posicion. No invariante a: Rotacion, Escala...
+  |-> Ventaja del descriptor no central
+          Invariante a: Nada. No invariante a: Rotacion, Escala...
+          
+  HU Momentos: Invariante a todo
+   |-> El pixel mas alejado del centro pondera más que cualquier otro
+           Los pixeles blancos pesan más que los negros (densidad)
+           El pixel centroide pondera 0. Así hasta orden 3
+   
+   |-> Centroide: Punto medio sobre 'x' y sobre 'y' -> Centro de masas
+           Si el objeto es de densidad de color cte. -> Centro = Centroide
+           Si el objeto es de densidad no cte -> Centro = Centro de masas
+   
+   |-> Matriz de covarianzas: Matriz de momentos dos (misma que la gaussiana)
+           sigma_x² = mu_20; sigma_y² = mu_02
+           Matriz de variablilidad de x sobre la intensidad de color
+           
+           Diagonalizar la matriz permite conocer su orientacion, angulo objeto
+           
+           Direccion principal del objeto se obtiene tras calcular los autovalores
+   
+  Textura
+   |-> Disposicion espacial de los colores del objeto.
+           Como estan puestos los colores unos con respecto de otros.
+   |-> Usado en clasificacion y/o segmentacion (en E.M)
+   
+   Tecnica1. Fourier (FFT)
+    |-> Salen dos puntos (el positivo y el negativo) orientados como la region
+            Si la frecuencia es grande -> Puntos más separados
+            La suma de diferentes senoidales componen la textura a analizar
+            - Solo sirve para definir patrones regulares
+    |-> Toda textura regular se puede descomponer con fourier en f. senoidales
+            No se mezclan unas con otras. Al hacer fourier salen todas a la vez.
+            Una f. senoidal viene determinado por el angulo y la frecuencia
+    
+   Tecnica2. Estadistica
+    |-> Momentos centrales del histograma. Problema: No sabemos donde estan
+    |-> Matriz de coocurrencias. Un color frente al otro.A(i,j) | i,j = [0,255]
+             |-> Patron de textura. d = [1,1] // Hay que escoger el mejor
+                     Cuantas veces aparece cada valor a 45º //[1,1]
+                     Repeticion espacial de los colores en una direccion 
+                     Hay que ver que 'd' hace la matriz mayor y normalizarla
+    
+    |-> Textons. Repeticiones de un patch en la imagen
+            Metodo para reconocer lugares ya visitados
+            Analisis del histograma del vector de caracteristicas (los textons)
+         ** Ni rotacion ni escala ** Se podria hacer, pero la textura cambia

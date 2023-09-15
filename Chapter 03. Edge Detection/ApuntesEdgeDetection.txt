@@ -1,0 +1,99 @@
+﻿------------------
+T.2 Edge Detection
+------------------
+ |-> Detectar los bordes de la imagen.
+ |-> Mas utilizadas: Canny algorithm y Fist Derivate.
+ 
+ =============================================================================
+ Punto 1. Introduccion 
+  |-> Hay pixeles mas valiosos de otros a la hora de extraer la informacion.
+  
+  - Bordes de una imagen:
+    Transiciones entre regiones de la imagen que tienen diferentes intensidades
+    Buscamos pixeles cercanos con gran diferencia de intensidad.
+    
+    Si es imagen a color, se pasa a intensidades de grises
+            
+  - Determinar el borde:
+        Donde se produce el cambio (OX).
+        Angulo con el que se produce (pendiente).
+        Cambio producido y espacio de tiempo.
+
+
+  |-> Tipos de errores:
+          1. E. de deteccion -> Falsos positivos o falsos negativos.
+          2. E. de localizacion -> Localizas el borde (bien) equivocamente.
+          3. E. de respuesta multiple -> Se busca una transicion discreta.
+                  Un solo pixel (OX) para la transicion/borde de intensidades.
+                  
+  
+ =============================================================================
+ Punto 2. Operaciones basadas en la primera derivada
+  |-> Primera derivada: Localiza el maximo en un x0.
+  |-> Segunda derivada: El maximo es el punto central de la grafica. 
+  |-> La derivada se suele aplicar a sobre la escala de grises de la imagen. 
+  
+  Dos dimensiones:
+          Vector gradiente: ** Flecha de negro a blanco ** 
+           |-> Forma polar
+           |-> Modulo del vector
+  
+  Tras aplicar el gradiente (convolucion) a una imagen no es una.
+  Dos imagenes resultantes, una de bordes de columnas y otra borde de filas.
+  
+  Tamaño del kernel:
+   El ruido es el mayor problema. Coger uno grande es como si suavizaramos.
+   Si es pequeño, prioriza la deteccion de objetos pequeños
+   Si es grande, prioriza la deteccion de objetos grandes
+   |-> Aumentar (7x7) la cantidad de pixeles para reducir el impacto del ruido
+           - Mejor Detector, peor localizador
+   |-> Pequeñas (3x3) cuando hay poco ruido para ser mas preciso
+           - Mejor Localizador, peor detector
+  
+  DroG: Derivada de la Gaussiana.
+   |-> Convolucionamos nuestra imagen con DroG directamente 
+           Podemos usar templates (kernels)
+   |-> DroG es el gradiente de la Gaussiana
+   |-> Sigma decide como de grande quiero hacer la derivada 
+           (y el ancho de la campana de Gauss)
+   |-> Uno de los problemas es donde colocar el umbral de corte
+           Hay valores que son bordes que pueden quedarse fuera
+  
+  =============================================================================
+  Punto 3. Operaciones basadas en la segunda derivada 
+   |-> Detecta exactamente donde esta el borde
+   |-> Esta en el centro de la grafica
+   
+   Laplaciana: Suma los cuatro vecinos y quitar 4 veces el valor actual 
+    |-> Problema: En la practica por culpa del ruido no se puede aplicar
+                            Se debe aplicar LoG
+            
+   LoG: Segundo gradiente de la imagen, 
+                   Gradiente de DroG, 
+                   Laplaciana de la Gaussiana
+    |-> Filas y columnas
+   
+   DoG: Diferencia de Gaussiana
+    |-> Un pixel se dice que es borde si:
+           El valor es menor que threshold y al menos uno de los vecinos es mayor
+           El valor es mayor que treshold y al menos uno de los vecinos es menor
+          - Mas parecido a suavizar, pero derivando 
+ 
+  =============================================================================
+  Punto 4. Canny Algorithm
+    |-> Incluye al operador DroG. Algoritmo mas utilizado. Algo lento
+    |-> Hysteresis: Rango de intensidad para el borde (uno alto y otro bajo) 
+    |-> Resultado similar al LoG pero sin aplicar segunda derivada
+  
+   Problemas de DroG y solucion de Canny:
+    |-> Supresion de no Maximo:
+             Angulo perpedicular al borde y de oscuro a claro
+             Desplazamiento lateral perpendicular al borde
+   
+   Hysteresis:
+           No se aplican los dos threshold a la vez
+           El alto puede coger a los picos intensos del contorno
+           Los bajos recogen al resto
+           
+           
+   Optimiza la deteccion/localizacion, añade control a respuesta multiple
